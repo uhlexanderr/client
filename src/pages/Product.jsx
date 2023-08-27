@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { useDispatch } from 'react-redux';
+import styled from 'styled-components';
+import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { Add, Remove } from '@material-ui/icons';
 import { publicRequest } from '../requestMethods';
@@ -8,8 +8,9 @@ import { addProduct } from '../redux/cartRedux';
 import { mobile } from '../responsive';
 import Navbar from '../components/Navbar';
 import Announcement from '../components/Announcement';
-import Newsletter from '../components/Newsletter';
 import Footer from '../components/Footer';
+import Snackbar from '@material-ui/core/Snackbar';
+import MuiAlert from '@material-ui/lab/Alert';
 
 const Container = styled.div``;
 const Wrapper = styled.div`
@@ -38,7 +39,9 @@ const Title = styled.h1`
 `;
 const Desc = styled.p`
   margin: 20px 0px;
-  font-size: 24px;
+  font-size: 21px;
+  font-weight: 300;
+  white-space: pre-wrap;
 `;
 const Price = styled.span`
   font-weight: 100;
@@ -57,23 +60,23 @@ const Filter = styled.div`
 `;
 const FilterTitle = styled.span`
   font-size: 20px;
-  font-weight: 200;
+  font-weight: 400;
 `;
-const FilterColor = styled.div`
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: ${(props) => props.color};
-  margin: 0px 5px;
-  cursor: pointer;
-  outline: 1px solid black;
+const FilterColorDropdown = styled.select`
+  margin: 10px;
+  padding: 5px;
+  border: 2px solid black;
+  font-size: 14px;
 `;
 const FilterSize = styled.select`
   margin: 10px;
   padding: 5px;
   border: 2px solid black;
+  font-size: 14px;
 `;
-const FilterSizeOption = styled.option``;
+const FilterSizeOption = styled.option`
+  font-size: 14px;
+`;
 const AddContainer = styled.div`
   width: 50%;
   display: flex;
@@ -89,15 +92,15 @@ const AmountContainer = styled.div`
 const Icon = styled.div`
   cursor: pointer;
 `;
-const Amount = styled.span`
-  width: 30px;
+const Amount = styled.input`
+  width: 50px;
   height: 30px;
-  border-radius: 10px;
   border: 2px solid black;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border-radius: 10px;
+  text-align: center;
   margin: 0px 5px;
+  font-size: 16px;
+  font-weight: 600;
 `;
 const Button = styled.button`
   padding: 15px;
@@ -109,28 +112,19 @@ const Button = styled.button`
   &:hover {
     background-color: #f8f4f4;
   }
-`;
 
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
+  &:disabled {
+    background-color: lightgray;
+    cursor: not-allowed;
   }
 `;
 
-const Popup = styled.div`
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  padding: 10px;
-  background-color: #fff;
-  border-radius: 5px;
-  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
-  z-index: 999;
-  animation: ${fadeIn} 0.3s ease-in;
-`;
+const formatPrice = (price) => {
+  if (typeof price !== 'number' || isNaN(price)) {
+    return '';
+  }
+  return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
 
 const Product = () => {
   const location = useLocation();
@@ -139,24 +133,31 @@ const Product = () => {
   const [quantity, setQuantity] = useState(1);
   const [color, setColor] = useState('');
   const [size, setSize] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [showPopup, setShowPopup] = useState(false); // Track whether to show the popup or not
+  const [showSuccessSnackbar, setShowSuccessSnackbar] = useState(false);
+  const [showErrorSnackbar, setShowErrorSnackbar] = useState(false);
   const dispatch = useDispatch();
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
+  const currentUser = useSelector((state) => state.user.currentUser);
 
   useEffect(() => {
+    let isMounted = true;
+
     const getProduct = async () => {
       try {
         const res = await publicRequest.get('/products/find/' + id);
-        setProduct(res.data);
-        setLoading(false);
+        if (isMounted) {
+          setProduct(res.data);
+        }
       } catch (error) {
         console.log('Error fetching product:', error);
-        setLoading(false);
       }
     };
+
     getProduct();
+
+    // Cleanup function to cancel the ongoing operation if the component is unmounted
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const handleQuantity = (type) => {
@@ -168,18 +169,34 @@ const Product = () => {
   };
 
   const handleClick = () => {
-    if (color && size) {
+    if (!currentUser) {
+      setShowErrorSnackbar(true);
+    } else if (color && size) {
       dispatch(addProduct({ ...product, quantity, color, size }));
-      setSelectedColor(color); // Store the selected color in a separate state variable
-      setSelectedSize(size); // Store the selected size in a separate state variable
-      setShowPopup(true); // Show the popup
-  
+      setShowSuccessSnackbar(true);
       setTimeout(() => {
-        setShowPopup(false);
-      }, 2000);
+        setShowSuccessSnackbar(false);
+      }, 2500);
+    } else {
+      alert('Please choose a color and size.');
     }
   };
 
+  const handleQuantityChange = (e) => {
+    const newQuantity = parseInt(e.target.value);
+    if (!isNaN(newQuantity)) {
+      setQuantity(newQuantity);
+    }
+  };
+
+  const handleCloseSuccessSnackbar = () => {
+    setShowSuccessSnackbar(false);
+  };
+
+  const handleCloseErrorSnackbar = () => {
+    setShowErrorSnackbar(false);
+  };
+  
   return (
     <Container>
       <Navbar />
@@ -192,27 +209,30 @@ const Product = () => {
           <Title>{product.title}</Title>
           <Desc>{product.desc}</Desc>
           <Price>
-            ₱ <b>{product.price}</b>
+            ₱ <b>{formatPrice(product.price)}</b>
           </Price>
           <FilterContainer>
             <Filter>
-              <FilterTitle>Color</FilterTitle>
-              {product.color?.map((c) => (
-                <FilterColor
-                  color={c}
-                  key={c}
-                  onClick={() => setColor(c)}
-                  style={{
-                    border: color === c ? '2px solid #000' : 'none', // Add border for selected color
-                  }}
-                />
-              ))}
+              <FilterTitle></FilterTitle>
+              <FilterColorDropdown
+                onChange={(e) => setColor(e.target.value)}
+                value={color}
+              >
+                <option disabled value="">
+                  Choose Color
+                </option>
+                {product.color?.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </FilterColorDropdown>
             </Filter>
             <Filter>
-              <FilterTitle>Size</FilterTitle>
+              <FilterTitle></FilterTitle>
               <FilterSize
                 onChange={(e) => setSize(e.target.value)}
-                value={size} // Set the value to the currently selected size
+                value={size}
               >
                 <FilterSizeOption disabled value="">
                   Choose Size
@@ -228,25 +248,33 @@ const Product = () => {
               <Icon>
                 <Remove onClick={() => handleQuantity('decrease')} />
               </Icon>
-              <Amount>{quantity}</Amount>
+              <Amount
+                type="number"
+                min="1"
+                value={quantity}
+                onChange={handleQuantityChange}
+              />
               <Icon>
                 <Add onClick={() => handleQuantity('increase')} />
               </Icon>
             </AmountContainer>
-            <Button onClick={handleClick}>ADD TO CART</Button>
+            <Button onClick={handleClick} disabled={!color || !size}>
+              ADD TO CART
+            </Button>
           </AddContainer>
         </InfoContainer>
       </Wrapper>
-      <Newsletter />
       <Footer />
-      {/* Render the popup when showPopup is true */}
-      {showPopup && (
-  <Popup>
-    <p>Color: {selectedColor}</p> {/* Use selectedColor instead of color */}
-    <p>Size: {selectedSize}</p> {/* Use selectedSize instead of size */}
-    <p>Product added to cart!</p>
-  </Popup>
-)}
+      <Snackbar open={showSuccessSnackbar} autoHideDuration={1500} onClose={handleCloseSuccessSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}> 
+        <MuiAlert onClose={handleCloseSuccessSnackbar} severity="success" elevation={6} variant="filled">
+          Product added to cart!
+        </MuiAlert>
+      </Snackbar>
+      <Snackbar open={showErrorSnackbar} autoHideDuration={2500} onClose={handleCloseErrorSnackbar} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}> 
+        <MuiAlert onClose={handleCloseErrorSnackbar} severity="error" elevation={6} variant="filled">
+          Please log in to add the product to your cart.
+        </MuiAlert>
+      </Snackbar>
     </Container>
   );
 };

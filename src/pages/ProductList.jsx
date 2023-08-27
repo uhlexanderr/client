@@ -2,7 +2,6 @@ import styled from "styled-components";
 import Navbar from "../components/Navbar";
 import Announcement from "../components/Announcement";
 import Products from "../components/Products";
-import Newsletter from "../components/Newsletter";
 import Footer from "../components/Footer";
 import { mobile } from '../responsive';
 import { useLocation } from "react-router-dom/cjs/react-router-dom.min";
@@ -92,7 +91,7 @@ const ProductList = () => {
         <Option value="yellow">Yellow</Option>
         <Option value="green">Green</Option>
         <Option value="gold">Gold</Option>
-        <Option value="grey">Grey</Option>
+        <Option value="gray">Gray</Option>
         <Option value="orange">Orange</Option>
         <Option value="brown">Brown</Option>
       </Select>
@@ -106,11 +105,9 @@ const ProductList = () => {
         <Option value="" disabled>
           Select Size
         </Option>
-        <Option value="XS">XS</Option>
-        <Option value="S">S</Option>
-        <Option value="M">M</Option>
-        <Option value="L">L</Option>
-        <Option value="XL">XL</Option>
+        <Option value="Small">Small</Option>
+        <Option value="Medium">Medium</Option>
+        <Option value="Large">Large</Option>
       </Select>
     </Filter>
 
@@ -133,7 +130,6 @@ const ProductList = () => {
     </FilterContainer>
 
   <Products cat={cat} filters={filters} sort={sort} />
-  <Newsletter />
   <Footer />
 </Container>
 

@@ -14,7 +14,6 @@ const Container = styled.div`
 const Announcement = () => {
   return (
     <Container>
-      Super Deal! 10% off on orders over ₱2,000
     </Container>
   )
 }
